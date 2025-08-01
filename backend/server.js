@@ -90,7 +90,7 @@ import { generateResult } from './services/gemini.service.js';
 
 const port = process.env.PORT || 3000;
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server, { cors: { origin: 'https://aichatbox-02v6.onrender.com' } });
 
 async function start() {
   try {
