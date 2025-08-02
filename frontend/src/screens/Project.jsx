@@ -59,7 +59,7 @@ const Project = () => {
       })
       .then((res) => {
         
-        console.log(res.data);
+        
         setIsModalOpen(false);
       })
       .catch((err) => {
@@ -316,7 +316,7 @@ const Project = () => {
         };
         setFileTree(updatedFileTree); // Update the fileTree state
         saveFileTree(updatedFileTree); // Save the updated fileTree to the backend
-        console.log("Updated File Tree:", updatedFileTree); // Log the updated file tree
+        
       }}
       className="h-full w-full p-2 border border-gray-300 rounded-md"
     ></textarea>
