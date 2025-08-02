@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "../config/axios";
@@ -43,6 +41,7 @@ const Project = () => {
   const [webContainer, setWebContainer] = useState(null);
   const [iframeUrl, setIFrameUrl] = useState(null);
   const [runProcess, setRunProcess] = useState(null);
+  const [isLoadingWebContainer, setIsLoadingWebContainer] = useState(false);
   const handleUserClick = (id) => {
     setSelectedUserId((prev) => {
       const newSet = new Set(prev);
@@ -79,21 +78,11 @@ const Project = () => {
 
   useEffect(() => {
     initializeSocket(project._id);
-    if (!webContainer) {
-      getWebContainer().then((container) => {
-        setWebContainer(container);
-        
-      });
-    }
     receiveMessage("project-message", (data) => {
       const message = JSON.parse(data.message);
       
-  
-      
       webContainer?.mount(message.fileTree);
       if (message.fileTree) {
-        
-        
         setFileTree(message.fileTree);
       }
       setMessages((prev) => [...prev, data]);
@@ -103,7 +92,6 @@ const Project = () => {
       .get(`/projects/get-project/${location.state.project._id}`)
       .then((res) => {
         setProject(res.data.project)
-        
         setFileTree(res.data.project.fileTree)
       });
 
@@ -114,6 +102,7 @@ const Project = () => {
       })
       .catch((err) => console.log(err));
   }, []);
+
   function saveFileTree(ft) {
     axios
       .put("/projects/update-file-tree", {
@@ -121,9 +110,6 @@ const Project = () => {
         fileTree: ft,
       })
       .then((res) => {
-        
-
-      
       })
       .catch((err) => {
         console.log(err);
@@ -230,8 +216,6 @@ const Project = () => {
       key={index}
       onClick={() => {
         setCurrentFile(file); 
-        
-        
       }}
       className={`tree-element cursor-pointer p-2 px-4 flex items-center gap-2 w-full ${
         currentFile === file ? "bg-blue-400" : "bg-slate-300"
@@ -259,44 +243,50 @@ const Project = () => {
               <div className="actions flex gap-2">
                 <button
                   onClick={async () => {
-                    await webContainer.mount(fileTree);
-                    const installProcess = await webContainer.spawn("npm", [
-                      "install",
-                    ]);
-                    installProcess.output.pipeTo(
-                      new WritableStream({
-                        write(chunk) {
-                          
-                          console.log(chunk);
-                        },
-                      })
-                    );
-                    if (runProcess) {
-                      runProcess.kill();
+                    setIsLoadingWebContainer(true);
+                    try {
+                      // Ensure the webContainer is ready before calling mount
+                      const container = await getWebContainer();
+                      setWebContainer(container);
+                      await container.mount(fileTree);
+                      const installProcess = await container.spawn("npm", [
+                        "install",
+                      ]);
+                      installProcess.output.pipeTo(
+                        new WritableStream({
+                          write(chunk) {
+                            console.log(chunk);
+                          },
+                        })
+                      );
+                      if (runProcess) {
+                        runProcess.kill();
+                      }
+                      let tempRunProcess = await container.spawn("npm", [
+                        "start",
+                      ]);
+                      tempRunProcess.output.pipeTo(
+                        new WritableStream({
+                          write(chunk) {
+                            console.log(chunk);
+                          },
+                        })
+                      );
+                      setRunProcess(tempRunProcess);
+                      container.on("server-ready", (port, url) => {
+                        console.log(port, url);
+                        setIFrameUrl(url);
+                        setIsLoadingWebContainer(false);
+                      });
+                    } catch (error) {
+                      console.error("Failed to run webcontainer:", error);
+                      setIsLoadingWebContainer(false);
                     }
-                    // await webContainer.spawn("npx",["kill-port","3000"]);
-                    let tempRunProcess = await webContainer.spawn("npm", [
-                      "start",
-                    ]);
-                    tempRunProcess.output.pipeTo(
-                      new WritableStream({
-                        write(chunk) {
-                          
-                          console.log(chunk)
-                        },
-                      })
-                    );
-                    setRunProcess(tempRunProcess);
-                    webContainer.on("server-ready", (port, url) => {
-                
-                
-                      console.log(port, url);
-                      setIFrameUrl(url);
-                    });
                   }}
                   className="p-2 px-4 bg-slate-400 text-white"
+                  disabled={isLoadingWebContainer}
                 >
-                  run
+                  {isLoadingWebContainer ? 'Running...' : 'run'}
                 </button>
               </div>
             </div>
