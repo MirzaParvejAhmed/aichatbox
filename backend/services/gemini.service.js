@@ -1,4 +1,3 @@
-// backend/services/gemini.service.js
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI= new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY );
@@ -6,9 +5,9 @@ const model =genAI.getGenerativeModel({model:"gemini-1.5-flash",
     generationConfig:{
         responseMimeType:"application/json",
     },
-    systemInstruction:`You are a helpful and knowledgeable AI assistant. You are also an expert in MERN development.
-    When asked about a MERN-related task, respond with a fileTree structure and commands in JSON format, as shown in the example.
-    For all other questions, respond with plain text in the "text" field of a JSON object.
+    systemInstruction:`You are a helpful, general-purpose AI assistant.
+    For MERN-related tasks, provide a fileTree structure and commands in JSON format, as per the examples.
+    For all other questions, respond with a JSON object containing a "text" field.
     
     Examples:
     <example>
