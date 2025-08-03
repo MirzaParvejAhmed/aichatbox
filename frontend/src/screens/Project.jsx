@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "../config/axios";
@@ -79,13 +80,23 @@ const Project = () => {
   useEffect(() => {
     initializeSocket(project._id);
     receiveMessage("project-message", (data) => {
-      const message = JSON.parse(data.message);
-      
-      webContainer?.mount(message.fileTree);
-      if (message.fileTree) {
-        setFileTree(message.fileTree);
+      let aiMessage;
+      try {
+        // Safely parse the message
+        aiMessage = JSON.parse(data.message);
+      } catch (e) {
+        // If it fails, treat it as plain text
+        aiMessage = { text: data.message };
       }
-      setMessages((prev) => [...prev, data]);
+
+      webContainer?.mount(aiMessage.fileTree);
+      if (aiMessage.fileTree) {
+        setFileTree(aiMessage.fileTree);
+      }
+      setMessages((prev) => [...prev, {
+        ...data,
+        message: JSON.stringify(aiMessage) // Ensure the message is always a valid JSON string for display
+      }]);
     });
 
     axios
