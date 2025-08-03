@@ -77,7 +77,3 @@ export const generateResult = async (contents)=>{
     const result = await model.generateContent(contents);
     return result.response.text();
 }
-
-
-
-
