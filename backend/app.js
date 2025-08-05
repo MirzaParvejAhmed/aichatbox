@@ -7,6 +7,7 @@ import geminiRoutes from './routes/gemini.routes.js';
 import cookieParser from 'cookie-parser' 
 import cors from 'cors';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 connect();
 
@@ -19,16 +20,21 @@ app.use((req, res, next) => {
     next();
 });
 
+// Corrected CORS configuration for Express to allow requests from the frontend
 app.use(cors({
     origin: 'https://aichatbox-02v6.onrender.com'
 }));
+
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(cookieParser());
 
-const __dirname = path.resolve();
-app.use(express.static(path.join(__dirname, 'frontend/dist')));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '..');
+
+app.use(express.static(path.join(projectRoot, 'frontend/dist')));
 
 app.use('/users',userRoutes);
 app.use('/projects',projectRoutes);
@@ -36,7 +42,7 @@ app.use("/gemini",geminiRoutes);
 
 // Catch-all route to serve the frontend's index.html
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend/dist', 'index.html'));
+    res.sendFile(path.join(projectRoot, 'frontend/dist', 'index.html'));
 });
 
 export default app;
