@@ -14,11 +14,24 @@ connect();
 
 const app = express();
 
+// app.use((req, res, next) => {
+//     // These headers are crucial for WebContainer to work
+//     res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+//     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+//     next();
+// });
+
 app.use((req, res, next) => {
-    // These headers are crucial for WebContainer to work
-    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-    next();
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  next();
+});
+
+// Or, for more control over specific routes
+app.get('/', (req, res) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.use(cors({
