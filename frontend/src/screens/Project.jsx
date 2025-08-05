@@ -51,21 +51,21 @@ const Project = () => {
     });
   };
 
-  function addCollaborators() {
-    axios
-      .put("/projects/add-user", {
-        projectId:location.state.project._id,
-        users: Array.from(selectedUserId),
-      })
-      .then((res) => {
-        
-        
-        setIsModalOpen(false);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }
+ function addCollaborators() {
+  axios
+    .put("/projects/add-user", {
+      projectId: location.state.project._id,
+      users: Array.from(selectedUserId),
+    })
+    .then((res) => {
+      // Update the project state with the new data from the backend
+      setProject(res.data.project); 
+      setIsModalOpen(false);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+}
 
   function send() {
     const newMessage = {
