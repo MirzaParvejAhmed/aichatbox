@@ -90,8 +90,15 @@ import { generateResult } from './services/gemini.service.js';
 
 const port = process.env.PORT || 3000;
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: 'https://aichatbox-02v6.onrender.com' } });
+const allowedOrigins = ["https://aichatbox-02v6.onrender.com"];
 
+// Initialize Socket.IO with CORS options
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"]
+  }
+});
 async function start() {
   try {
     // 1. Connect to MongoDB before anything else
