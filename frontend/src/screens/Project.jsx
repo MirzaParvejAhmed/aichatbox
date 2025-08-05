@@ -131,16 +131,23 @@ const Project = () => {
     <main className="h-screen w-screen flex">
       <section className="left relative flex flex-col h-screen min-w-96 bg-slate-400">
         <header className="flex justify-between items-center w-full p-2 px-4 bg-slate-300 absolute top-0">
-          <button onClick={() => setIsModalOpen(true)} className="flex gap-2">
-            <i className="ri-user-add-fill mr-1"></i>
-            <p>Add Collaborators</p>
-          </button>
-          <button
-            onClick={() => setSidePanelOpen(!sidePanelOpen)}
-            className="p-2"
-          >
-            <i className="ri-group-fill"></i>
-          </button>
+         <button
+  onClick={() => {
+    console.log("Add Collaborators button clicked!");
+    setIsModalOpen(true);
+  }}
+  className="flex gap-2"
+>
+  <i className="ri-user-add-fill mr-1"></i>
+  <p>Add Collaborators</p>
+</button>
+
+<button
+  onClick={() => setSidePanelOpen(!sidePanelOpen)}
+  className="p-2"
+>
+  <i className="ri-group-fill"></i>
+</button>
         </header>
         <div className="conversation-area pt-14 pb-10 flex-grow flex flex-col h-full relative">
           <div className="message-box p-1 flex-grow flex flex-col overflow-auto max-h-full gap-1">
