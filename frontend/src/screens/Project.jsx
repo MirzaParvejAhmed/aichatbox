@@ -131,12 +131,13 @@ const Project = () => {
     <main className="h-screen w-screen flex">
       <section className="left relative flex flex-col h-screen min-w-96 bg-slate-400">
         <header className="flex justify-between items-center w-full p-2 px-4 bg-slate-300 absolute top-0">
-         <button
+  <button
+  type="button"
   onClick={() => {
     console.log("Add Collaborators button clicked!");
     setIsModalOpen(true);
   }}
-  className="flex gap-2"
+  className="flex gap-2 relative z-10" 
 >
   <i className="ri-user-add-fill mr-1"></i>
   <p>Add Collaborators</p>
