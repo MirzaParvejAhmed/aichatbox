@@ -7,73 +7,44 @@ const model = genAI.getGenerativeModel({
   generationConfig: {
     responseMimeType: "application/json",
   },
-  systemInstruction: `You are a helpful, general-purpose AI assistant.
-    For MERN-related tasks, provide a fileTree structure and commands in JSON format, as per the examples.
-    For all other questions, respond with a JSON object containing a "text" field.
+  systemInstruction: `You are a helpful, general-purpose AI assistant. Your primary function is to provide structured responses in JSON format, as per the examples below.
+
+    For any non-technical question, respond with a simple JSON object containing a 'text' field.
     
-    Examples:
+    For technical tasks, especially those related to MERN stack development, provide a detailed file structure and commands in a structured JSON object. The file contents for code should be a single string, suitable for direct display in an editor.
+
+    Examples for technical tasks:
     <example>
-    user:Create an express application
+    user:Create a simple Express application with a "Hello World" route.
     response:{
-    "text":"this is your fileTree structure of the express server",
-    "fileTree":{
-    "app.js":{
-    file:{
-    contents:"
-const express = require('express');
-const app = express();
-
-app.get('/', (req, res) => {
-    res.send('Hello, Express Server!');
-});
-
-// Start server
-app.listen(3000, () => {
-    console.log('Server is running');
-})
-"
-},
-
-"package.json":{
-file:{
-contents:"
-{
-
-    "name": "backend",
-    "version": "1.0.0",
-    "description": "",
-    "main": "server.js",
-    "type": "module",
-    "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "description":"",
-    "dependencies": {
-    "express": "^5.1.0"}
-}
-",
-},
-},
-},
-"buildCommand":{
-    mainItem:"npm",
-    commands:["install"]
-    },
-    "startCommand":{
-    mainItem:"node",
-    commands:["app.js"]
+        "text": "Here is the file structure and code for a basic Express application.",
+        "fileTree": {
+            "server.js": {
+                "file": {
+                    "contents": "const express = require('express');\\nconst app = express();\\n\\napp.get('/', (req, res) => {\\n  res.send('Hello, Express!');\\n});\\n\\napp.listen(3000, () => {\\n  console.log('Server is running on port 3000');\\n});\\n"
+                }
+            },
+            "package.json": {
+                "file": {
+                    "contents": "{\\n  \\"name\\": \\"backend\\",\\n  \\"version\\": \\"1.0.0\\",\\n  \\"main\\": \\"server.js\\",\\n  \\"dependencies\\": {\\n    \\"express\\": \\"~4.17.1\\"\\n  }\\n}"
+                }
+            }
+        },
+        "commands": [
+            "npm install",
+            "node server.js"
+        ]
     }
-}
+    </example>
 
-</example>
-<example>
-user:Hello
-response:{
-"text":"Hello, how can i help you today!"}
-</example>
+    Example for normal questions:
+    <example>
+    user:What is the capital of France?
+    response: {
+        "text": "The capital of France is Paris."
+    }
+    </example>
+    
     `
 });
 
@@ -82,13 +53,19 @@ export const generateResult = async (contents) => {
     const result = await model.generateContent(contents);
     const responseString = result.response.text();
     
-    // Clean up any extra characters before parsing.
-    const cleanedResponse = responseString.replace(/```json|```/g, '').trim();
-
-    const parsedResponse = JSON.parse(cleanedResponse);
+    // Attempt to parse the JSON string.
+    const parsedResponse = JSON.parse(responseString);
     return parsedResponse;
   } catch (error) {
     console.error("Failed to parse JSON from AI response:", error);
-    return { text: "I'm sorry, I couldn't generate a response. Please try again." };
+
+    // If parsing fails, it's likely a non-JSON response from the AI.
+    // In this case, we'll return the raw text wrapped in a new object.
+    const result = await model.generateContent(contents);
+    const rawText = result.response.text();
+    
+    return { 
+      text: "```cpp\n" + rawText + "```" 
+    };
   }
 };
