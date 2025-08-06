@@ -1,84 +1,3 @@
-// import 'dotenv/config'
-// import http from 'http';
-// import app from './app.js';
-// import {Server} from 'socket.io'
-// import jwt from "jsonwebtoken";
-// import mongoose from 'mongoose';
-// import projectModel from './models/project.model.js';
-// import { generateResult } from './services/gemini.service.js';
-
-
-// const port = process.env.PORT || 3000;
-// const server = http.createServer(app);
-// const io =new Server(server,{
-//     cors:{
-//         origin:'*'
-//     }
-// })
-     
-//  io.use(async (socket,next)=>{
-//     try{
-//         const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(' ')[1];
-//         if(!token){
-//             return next(new Error('Authentication Error'))
-//         }
-//         const projectId = socket.handshake.query.projectId;
-//         if(!mongoose.Types.ObjectId.isValid(projectId)){
-//             return next(new Error('Invalid ProjectId'));
-//         }
-//         socket.project = await projectModel.findById(projectId);
-
-//         const decoded = jwt.verify(token,process.env.JWT_SECRET);
-//         if(!decoded){
-//             return next(new Error('Authentication Error'))
-//         }
-//         socket.user =decoded;
-//             next();
-
-//     }catch(error){
-//         next(error)
-//     }
-// })
-// io.on('connection', socket => {
-//     socket.roomId = socket.project._id.toString()
-//     console.log('a user connected');
-//     socket.join(socket.roomId);
-
-//     socket.on('project-message', async data=>{
-//         const message =data.message;
-//         const aiIsPresentInMessage =message.includes('@ai');
-//          socket.broadcast.to(socket.roomId).emit('project-message',data)
-//         if (aiIsPresentInMessage){
-//             const contents =message.replace('@ai','');
-//             const result = await generateResult(contents);
-//             io.to(socket.roomId).emit('project-message',{
-//                 message:result,
-                
-//                 sender:{
-//                     _id:'ai',
-//                     email:'AI',
-                   
-//                 }
-            
-//             })
-    
-//             return
-//         }
-   
-//     })
-
-//   socket.on('disconnect', () => {
-//     console.log('user disconnected')
-//     socket.leave(socket.roomId)
-//    });
-// });
-
-// server.listen(port,()=>{
-//     console.log(`Server is running on port ${port}`);
-// })
-
-
-// server.js
 import 'dotenv/config';
 import http from 'http';
 import app from './app.js';
@@ -99,6 +18,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
+
 async function start() {
   try {
     // 1. Connect to MongoDB before anything else
@@ -162,13 +82,30 @@ function setupSocket() {
       socket.broadcast.to(room).emit('project-message', data);
 
       if (aiTrigger) {
-        const input = message.replace('@ai', '');
-        const result = await generateResult(input);
-
-        io.to(room).emit('project-message', {
-          message: result,
-          sender: { _id: 'ai', email: 'AI' }
-        });
+        try {
+          const input = message.replace('@ai', '');
+          const result = await generateResult(input);
+          
+          // === UPDATED: Add a check for a valid AI response object ===
+          if (result && (result.text || result.fileTree)) {
+            io.to(room).emit('project-message', {
+              message: result,
+              sender: { _id: 'ai', email: 'AI' }
+            });
+          } else {
+            console.error("AI returned an empty or malformed response:", result);
+            io.to(room).emit('project-message', {
+              message: { text: "I'm sorry, I couldn't generate a response. Please try again." },
+              sender: { _id: 'ai', email: 'AI' }
+            });
+          }
+        } catch (error) {
+          console.error("Error generating AI response:", error);
+          io.to(room).emit('project-message', {
+            message: { text: "An error occurred while generating the AI response. Please try again later." },
+            sender: { _id: 'ai', email: 'AI' }
+          });
+        }
       }
     });
 
