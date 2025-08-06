@@ -1,3 +1,4 @@
+
 import 'dotenv/config';
 import http from 'http';
 import app from './app.js';
@@ -82,30 +83,13 @@ function setupSocket() {
       socket.broadcast.to(room).emit('project-message', data);
 
       if (aiTrigger) {
-        try {
-          const input = message.replace('@ai', '');
-          const result = await generateResult(input);
-          
-          // === UPDATED: Add a check for a valid AI response object ===
-          if (result && (result.text || result.fileTree)) {
-            io.to(room).emit('project-message', {
-              message: result,
-              sender: { _id: 'ai', email: 'AI' }
-            });
-          } else {
-            console.error("AI returned an empty or malformed response:", result);
-            io.to(room).emit('project-message', {
-              message: { text: "I'm sorry, I couldn't generate a response. Please try again." },
-              sender: { _id: 'ai', email: 'AI' }
-            });
-          }
-        } catch (error) {
-          console.error("Error generating AI response:", error);
-          io.to(room).emit('project-message', {
-            message: { text: "An error occurred while generating the AI response. Please try again later." },
-            sender: { _id: 'ai', email: 'AI' }
-          });
-        }
+        const input = message.replace('@ai', '');
+        const result = await generateResult(input);
+
+        io.to(room).emit('project-message', {
+          message: result,
+          sender: { _id: 'ai', email: 'AI' }
+        });
       }
     });
 
