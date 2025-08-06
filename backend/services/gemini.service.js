@@ -1,11 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI= new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY );
-const model =genAI.getGenerativeModel({model:"gemini-1.5-flash",
-    generationConfig:{
-        responseMimeType:"application/json",
-    },
-    systemInstruction:`You are a helpful, general-purpose AI assistant.
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
+const model = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash",
+  generationConfig: {
+    responseMimeType: "application/json",
+  },
+  systemInstruction: `You are a helpful, general-purpose AI assistant.
     For MERN-related tasks, provide a fileTree structure and commands in JSON format, as per the examples.
     For all other questions, respond with a JSON object containing a "text" field.
     
@@ -22,12 +23,12 @@ const express = require('express');
 const app = express();
 
 app.get('/', (req, res) => {
-  res.send('Hello, Express Server!');
+    res.send('Hello, Express Server!');
 });
 
 // Start server
 app.listen(3000, () => {
-  console.log('Server is running');
+    console.log('Server is running');
 })
 "
 },
@@ -37,33 +38,33 @@ file:{
 contents:"
 {
 
-  "name": "backend",
-  "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
-  "type": "module",
-  "scripts": {
+    "name": "backend",
+    "version": "1.0.0",
+    "description": "",
+    "main": "server.js",
+    "type": "module",
+    "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description":"",
-  "dependencies": {
-  "express": "^5.1.0"}
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description":"",
+    "dependencies": {
+    "express": "^5.1.0"}
 }
 ",
 },
 },
 },
 "buildCommand":{
-   mainItem:"npm",
-   commands:["install"]
-   },
-   "startCommand":{
-   mainItem:"node",
-   commands:["app.js"]
-   }
+    mainItem:"npm",
+    commands:["install"]
+    },
+    "startCommand":{
+    mainItem:"node",
+    commands:["app.js"]
+    }
 }
 
 </example>
@@ -77,5 +78,15 @@ response:{
 
 export const generateResult = async (contents) => {
     const result = await model.generateContent(contents);
-    return result.response.text();
+    const responseString = result.response.text();
+    
+    try {
+        // Attempt to parse the JSON string into a JavaScript object
+        const parsedResponse = JSON.parse(responseString);
+        return parsedResponse;
+    } catch (error) {
+        console.error("Failed to parse JSON from AI response:", error);
+        // Handle the parsing error gracefully, e.g., return a default object
+        return { text: "I'm sorry, I encountered an error while processing the response." };
+    }
 };
