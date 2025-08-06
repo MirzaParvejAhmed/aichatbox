@@ -7,8 +7,74 @@ const model = genAI.getGenerativeModel({
   generationConfig: {
     responseMimeType: "application/json",
   },
-  // Your system instruction remains the same
-  systemInstruction: `You are a helpful, general-purpose AI assistant...`
+  systemInstruction: `You are a helpful, general-purpose AI assistant.
+    For MERN-related tasks, provide a fileTree structure and commands in JSON format, as per the examples.
+    For all other questions, respond with a JSON object containing a "text" field.
+    
+    Examples:
+    <example>
+    user:Create an express application
+    response:{
+    "text":"this is your fileTree structure of the express server",
+    "fileTree":{
+    "app.js":{
+    file:{
+    contents:"
+const express = require('express');
+const app = express();
+
+app.get('/', (req, res) => {
+    res.send('Hello, Express Server!');
+});
+
+// Start server
+app.listen(3000, () => {
+    console.log('Server is running');
+})
+"
+},
+
+"package.json":{
+file:{
+contents:"
+{
+
+    "name": "backend",
+    "version": "1.0.0",
+    "description": "",
+    "main": "server.js",
+    "type": "module",
+    "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description":"",
+    "dependencies": {
+    "express": "^5.1.0"}
+}
+",
+},
+},
+},
+"buildCommand":{
+    mainItem:"npm",
+    commands:["install"]
+    },
+    "startCommand":{
+    mainItem:"node",
+    commands:["app.js"]
+    }
+}
+
+</example>
+<example>
+user:Hello
+response:{
+"text":"Hello, how can i help you today!"}
+</example>
+    `
 });
 
 export const generateResult = async (contents) => {
@@ -16,13 +82,13 @@ export const generateResult = async (contents) => {
     const result = await model.generateContent(contents);
     const responseString = result.response.text();
     
-    // This file is responsible for parsing the JSON and handling errors
-    const parsedResponse = JSON.parse(responseString);
+    // Clean up any extra characters before parsing.
+    const cleanedResponse = responseString.replace(/```json|```/g, '').trim();
+
+    const parsedResponse = JSON.parse(cleanedResponse);
     return parsedResponse;
   } catch (error) {
-    console.error("Error in generateResult:", error);
-    // If there's an error (e.g., parsing error), return a structured object.
-    // This ensures the controller always receives a valid object.
-    return { text: "I'm sorry, I encountered an error while processing the response." };
+    console.error("Failed to parse JSON from AI response:", error);
+    return { text: "I'm sorry, I couldn't generate a response. Please try again." };
   }
 };
