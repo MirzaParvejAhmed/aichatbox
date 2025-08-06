@@ -1,4 +1,4 @@
-
+// server.js
 import 'dotenv/config';
 import http from 'http';
 import app from './app.js';
@@ -22,7 +22,6 @@ const io = new Server(server, {
 
 async function start() {
   try {
-    // 1. Connect to MongoDB before anything else
     await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -31,11 +30,7 @@ async function start() {
       serverSelectionTimeoutMS: 5000,
     });
     console.log(' MongoDB connected');
-
-    // 2. Only after successful connection, set up Socket.IO
     setupSocket();
-
-    // 3. Then start the server
     server.listen(port, () => {
       console.log(` Server listening on port ${port}`);
     });
@@ -51,7 +46,6 @@ function setupSocket() {
       const token =
         socket.handshake.auth?.token ||
         socket.handshake.headers.authorization?.split(' ')[1];
-
       if (!token) return next(new Error('Authentication Error'));
 
       const projectId = socket.handshake.query.projectId;
@@ -83,13 +77,31 @@ function setupSocket() {
       socket.broadcast.to(room).emit('project-message', data);
 
       if (aiTrigger) {
-        const input = message.replace('@ai', '');
-        const result = await generateResult(input);
+        try { // Correctly handle potential errors from the Gemini service
+          const input = message.replace('@ai', '');
+          const result = await generateResult(input);
 
-        io.to(room).emit('project-message', {
-          message: result,
-          sender: { _id: 'ai', email: 'AI' }
-        });
+          // Correctly check for a valid AI response before emitting
+          if (result && (result.text || result.fileTree)) {
+            io.to(room).emit('project-message', {
+              message: result,
+              sender: { _id: 'ai', email: 'AI' }
+            });
+          } else {
+            console.error("AI returned an empty or malformed response:", result);
+            io.to(room).emit('project-message', {
+              message: { text: "I'm sorry, I couldn't generate a response. Please try again." },
+              sender: { _id: 'ai', email: 'AI' }
+            });
+          }
+        } catch (error) {
+          // Send a helpful message to the user in case of an API or service error
+          console.error("Error generating AI response:", error);
+          io.to(room).emit('project-message', {
+            message: { text: "An internal server error occurred while processing your request. Please try again later." },
+            sender: { _id: 'ai', email: 'AI' }
+          });
+        }
       }
     });
 
