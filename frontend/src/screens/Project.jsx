@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "../config/axios";
@@ -30,7 +29,10 @@ const Project = () => {
   const location = useLocation();
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(new Set());
+
+  // === UPDATED: State for single user selection ===
+  const [selectedUserId, setSelectedUserId] = useState(null);
+
   const [project, setProject] = useState(location.state.project);
   const [users, setUsers] = useState([]);
   const [message, setSendMessage] = useState("");
@@ -43,29 +45,32 @@ const Project = () => {
   const [iframeUrl, setIFrameUrl] = useState(null);
   const [runProcess, setRunProcess] = useState(null);
   const [isLoadingWebContainer, setIsLoadingWebContainer] = useState(false);
+
+  // === UPDATED: Logic for single user selection ===
   const handleUserClick = (id) => {
-    setSelectedUserId((prev) => {
-      const newSet = new Set(prev);
-      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
-      return newSet;
-    });
+    // If the same user is clicked again, deselect them
+    setSelectedUserId(id === selectedUserId ? null : id);
   };
 
- function addCollaborators() {
-  axios
-    .put("/projects/add-user", {
-      projectId: location.state.project._id,
-      users: Array.from(selectedUserId),
-    })
-    .then((res) => {
-      // Update the project state with the new data from the backend
-      setProject(res.data.project); 
-      setIsModalOpen(false);
-    })
-    .catch((err) => {
-      console.log(err);
-    });
-}
+  // === UPDATED: addCollaborators function to send single user ===
+  function addCollaborators() {
+    // Only send the request if a user is selected
+    if (selectedUserId) {
+      axios
+        .put("/projects/add-user", {
+          projectId: location.state.project._id,
+          users: [selectedUserId], // Send a single ID in an array
+        })
+        .then((res) => {
+          setProject(res.data.project);
+          setIsModalOpen(false);
+          setSelectedUserId(null); // Clear the selection after adding
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    }
+  }
 
   function send() {
     const newMessage = {
@@ -81,21 +86,18 @@ const Project = () => {
     initializeSocket(project._id);
     receiveMessage("project-message", (data) => {
       let aiMessage;
-      try {
-        // Safely parse the message
-        aiMessage = JSON.parse(data.message);
-      } catch (e) {
-        // If it fails, treat it as plain text
-        aiMessage = { text: data.message };
-      }
-
+      // === UPDATED: Simplified AI message handling from socket ===
+      // Backend now sends a valid JSON object, so no need for try/catch here.
+      // We directly use the message which should be the parsed JSON object.
+      aiMessage = data.message;
+    
       webContainer?.mount(aiMessage.fileTree);
       if (aiMessage.fileTree) {
         setFileTree(aiMessage.fileTree);
       }
       setMessages((prev) => [...prev, {
         ...data,
-        message: JSON.stringify(aiMessage) // Ensure the message is always a valid JSON string for display
+        message: aiMessage, // Store the parsed object directly
       }]);
     });
 
@@ -131,24 +133,25 @@ const Project = () => {
     <main className="h-screen w-screen flex">
       <section className="left relative flex flex-col h-screen min-w-96 bg-slate-400">
         <header className="flex justify-between items-center w-full p-2 px-4 bg-slate-300 absolute top-0">
-  <button
-  type="button"
-  onClick={() => {
-    console.log("Add Collaborators button clicked!");
-    setIsModalOpen(true);
-  }}
-  className="flex gap-2 relative z-10" 
->
-  <i className="ri-user-add-fill mr-1"></i>
-  <p>Add Collaborators</p>
-</button>
+          {/* === UPDATED: Button for best practices === */}
+          <button
+            type="button"
+            onClick={() => {
+              console.log("Add Collaborators button clicked!");
+              setIsModalOpen(true);
+            }}
+            className="flex gap-2 relative z-10"
+          >
+            <i className="ri-user-add-fill mr-1"></i>
+            <p>Add Collaborators</p>
+          </button>
 
-<button
-  onClick={() => setSidePanelOpen(!sidePanelOpen)}
-  className="p-2"
->
-  <i className="ri-group-fill"></i>
-</button>
+          <button
+            onClick={() => setSidePanelOpen(!sidePanelOpen)}
+            className="p-2"
+          >
+            <i className="ri-group-fill"></i>
+          </button>
         </header>
         <div className="conversation-area pt-14 pb-10 flex-grow flex flex-col h-full relative">
           <div className="message-box p-1 flex-grow flex flex-col overflow-auto max-h-full gap-1">
@@ -173,7 +176,8 @@ const Project = () => {
                         },
                       }}
                     >
-                      {JSON.parse(msg.message).text}
+                      {/* === UPDATED: Direct access to the text property === */}
+                      {msg.message.text} 
                     </Markdown>
                   ) : (
                     <p>{msg.message}</p>
@@ -230,20 +234,20 @@ const Project = () => {
       <section className="right flex flex-grow h-full bg-red-300">
         <div className="explorer h-full min-w-52 bg-slate-200 max-w-64">
           <div className="file-tree w-full">
-  {Object.keys(fileTree || {}).map((file, index) => (
-    <button
-      key={index}
-      onClick={() => {
-        setCurrentFile(file); 
-      }}
-      className={`tree-element cursor-pointer p-2 px-4 flex items-center gap-2 w-full ${
-        currentFile === file ? "bg-blue-400" : "bg-slate-300"
-      } hover:bg-slate-400`}
-    >
-      <p className="font-semibold text-lg">{file}</p>
-    </button>
-  ))}
-</div>
+            {Object.keys(fileTree || {}).map((file, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setCurrentFile(file);
+                }}
+                className={`tree-element cursor-pointer p-2 px-4 flex items-center gap-2 w-full ${
+                  currentFile === file ? "bg-blue-400" : "bg-slate-300"
+                } hover:bg-slate-400`}
+              >
+                <p className="font-semibold text-lg">{file}</p>
+              </button>
+            ))}
+          </div>
         </div>
         {currentFile && (
           <div className="code-editor flex flex-grow h-full flex-col">
@@ -309,30 +313,29 @@ const Project = () => {
                 </button>
               </div>
             </div>
-           <div className="bottom flex flex-grow max-w-full shrink overflow-auto">
-  {currentFile && fileTree[currentFile]?.file?.contents ? (
-    <textarea
-      value={fileTree[currentFile].file.contents} // Display file content
-      onChange={(e) => {
-        const updatedContent = e.target.value; // Update content on change
-        const updatedFileTree = {
-          ...fileTree,
-          [currentFile]: {
-            file: {
-              contents: updatedContent,
-            },
-          },
-        };
-        setFileTree(updatedFileTree); // Update the fileTree state
-        saveFileTree(updatedFileTree); // Save the updated fileTree to the backend
-        
-      }}
-      className="h-full w-full p-2 border border-gray-300 rounded-md"
-    ></textarea>
-  ) : (
-    <p className="text-center text-gray-500">Select a file to view its content</p>
-  )}
-</div>
+            <div className="bottom flex flex-grow max-w-full shrink overflow-auto">
+              {currentFile && fileTree[currentFile]?.file?.contents ? (
+                <textarea
+                  value={fileTree[currentFile].file.contents}
+                  onChange={(e) => {
+                    const updatedContent = e.target.value;
+                    const updatedFileTree = {
+                      ...fileTree,
+                      [currentFile]: {
+                        file: {
+                          contents: updatedContent,
+                        },
+                      },
+                    };
+                    setFileTree(updatedFileTree);
+                    saveFileTree(updatedFileTree);
+                  }}
+                  className="h-full w-full p-2 border border-gray-300 rounded-md"
+                ></textarea>
+              ) : (
+                <p className="text-center text-gray-500">Select a file to view its content</p>
+              )}
+            </div>
           </div>
         )}
         {iframeUrl && webContainer && (
@@ -361,9 +364,8 @@ const Project = () => {
                   key={user._id}
                   onClick={() => handleUserClick(user._id)}
                   className={`flex items-center justify-between p-4 bg-gray-700 rounded-md cursor-pointer hover:bg-gray-300 ${
-                    Array.from(selectedUserId).indexOf(user._id) !== -1
-                      ? "bg-slate-200"
-                      : ""
+                    // === UPDATED: Conditional class for single select ===
+                    selectedUserId === user._id ? "bg-slate-200" : ""
                   }`}
                 >
                   <span>{user.email}</span>
