@@ -1,22 +1,25 @@
-
-// backend/controllers/gemini.controller.js
+// File: controllers/gemini.controller.js
 import * as gemini from "../services/gemini.service.js";
 
 export const getResult = async (req, res) => {
     try {
         const { contents } = req.query;
-        const rawResult = await gemini.generateResult(contents);
+        // The service now returns an already-parsed object.
+        const resultObject = await gemini.generateResult(contents);
 
-        let formattedResult;
-        try {
-            // Attempt to parse the raw AI response as JSON
-            formattedResult = JSON.parse(rawResult);
-        } catch (parseError) {
-            // If it's not valid JSON, create a structured object with the raw text
-            formattedResult = { text: rawResult };
+        // Your code that caused the f.replace error is likely here or in your frontend.
+        // It should look something like this:
+        if (resultObject.text) {
+            // Correctly access the string before performing operations
+            let aiText = resultObject.text;
+            // if you need to remove something from the text...
+            // aiText = aiText.replace("@ai", ""); 
+            res.send({ text: aiText });
+        } else {
+            // If the response is a fileTree or another object, send it as-is
+            res.send(resultObject);
         }
 
-        res.send(formattedResult);
     } catch (error) {
         console.error("Error in gemini.controller.js:", error);
         return res.status(500).json({
